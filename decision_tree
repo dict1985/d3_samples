@@ -1,0 +1,517 @@
+// Initial variables about font sizes, and dimensions of the diagram
+var fontSize = 25;
+var lineSpace = 1;
+var boxHeight = 60;
+var boxWidth = 95;
+var width = 1050;
+//var width = 1650;
+var height = 1350;
+//var height = 1550;
+var yscale_performancebar = d3.scale.linear()
+                                .domain([0,1])
+                                .rangeRound([boxHeight/2,-boxHeight/2]);
+
+var cluster = d3.layout.cluster()
+    .size([height, width-160]);
+
+
+var diagonal = d3.svg.diagonal()
+    .projection(function(d) { return [d.y, d.x]; });
+
+var svg = d3.select("body").append("svg")
+    .attr("width", width)
+    .attr("height", height)
+  .append("g")
+    .attr("transform", "translate(80,0)");
+
+var color = d3.scale.ordinal()
+.domain(d3.range(21))
+.range(["#aec7e8","#ff7f0e","#ffbb78","#2ca02c","#98df8a","#e377c2","#f7b6d2","#7f7f7f","#c7c7c7","#bcbd22","#dbdb8d","#17becf","#9edae5", "#d62728","#ff9896", "#9467bd","#c5b0d5", "#8c564b","#c49c94", "#1f77b4", "white", "#0000"]);
+
+function getCookie(c_name)
+{
+var c_value = document.cookie;
+var c_start = c_value.indexOf(" " + c_name + "=");
+if (c_start == -1)
+  {
+  c_start = c_value.indexOf(c_name + "=");
+  }
+if (c_start == -1)
+  {
+  c_value = null;
+  }
+else
+  {
+  c_start = c_value.indexOf("=", c_start) + 1;
+  var c_end = c_value.indexOf(";", c_start);
+  if (c_end == -1)
+  {
+c_end = c_value.length;
+}
+c_value = unescape(c_value.substring(c_start,c_end));
+}
+return c_value;
+}
+
+//Setting up json data
+//var jsonFile = "test_confusion_matrixIrisWidth_backup.json";
+var csvFile = getCookie("fullFilePath"); //"d3_1.csv";
+/*if (window.top.frames["right"].document.getElementById('fileName').value != null && window.top.frames["right"].document.getElementById('fileName').value.length > 0){
+	csvFile = window.top.frames["right"].document.getElementById('fileName').value;
+	alert(csvFile);
+}*/
+
+/*var color = d3.scale.ordinal()
+.domain(d3.range(10))
+.range(["red", "orange", "blue", "steelblue", "green", "lightgreen);
+*/
+
+//var color = d3.scale.category20();
+// create the tree array
+      var tree = [];
+
+// ***************************************
+
+  d3.csv(csvFile, function(error, dataset) {
+	// create a name: node map
+      var dataMap = dataset.reduce(function(map, node) {
+          map[node.name] = node;
+          return map;
+      }, {});
+
+
+      
+      dataset.forEach(function(node) {
+      	  node.f1score = +node.f1score;
+      	  node.f1score1 = +node.f1score1;
+      	  node.f1score2 = +node.f1score2;
+      	  node.nKPsForThisNode = +node.nKPsForThisNode;
+      	  node["1_a4"] = +node["1_a4"];
+      	  node["1_SETOSA"] = +node["1_SETOSA"];
+      	  node["1_VIRGINICA"] = +node["1_VIRGINICA"];
+      	  node["2_VIRGINICA"] = +node["2_VIRGINICA"];
+      	  node.a3 = +node.a3;
+      	  node["1_a3"] = +node["1_a3"];
+      	  node["2_a3"] = +node["2_a3"];
+      	  node["1_VERSICOLOR"] = +node["1_VERSICOLOR"];
+      	  node["2_a4"] = +node["2_a4"];
+      	  node["2_VERSICOLOR"] = +node["2_VERSICOLOR"];
+      	  node["3_VIRGINICA"] = +node["3_VIRGINICA"];
+      	  node.group = +node.group;
+
+          // add to parent
+          var parent = dataMap[node.parent];
+          if (parent) {
+              // create child array if it doesn't exist
+              (parent.children || (parent.children = []))
+                  // add node to child array
+                  .push(node);
+          } else {
+              tree.push(node);
+          }
+      });
+      displayJsonContent();
+      
+  });
+
+// ***************************************
+
+// Load a json file, and perform the following function when it loads
+//d3.json(jsonFile, function(error, root) {
+  function displayJsonContent() {
+    var nodes = cluster.nodes(tree[0]),
+        links = cluster.links(nodes);	
+    
+    
+    //DATA JOIN: Bind existing objects to new data
+    var existingLinks = svg.selectAll(".link").data(links);
+    
+    var existingLinks1 = svg.selectAll(".link").data(links);
+    
+    var existingLinks2 = svg.selectAll("g.link").data(links).enter().append("g").attr("class", "link");  
+      
+    //existingLinks2.append("path").attr("class", "link").attr("d", diagonal);	
+    
+    var existingNodes = svg.selectAll(".node").data(nodes);
+   
+    //UPDATE: Update old elements (before making new ones)
+    
+    //ENTER: Create new objects where necessary
+    
+    existingLinks.enter().append("path")    	.attr("class", "link")    	.attr("d", diagonal);
+    		
+    existingLinks1.enter().append("path")	.attr("class", "link")	.attr("d", diagonal);
+    
+    existingLinks2.append("path")	.attr("class", "link")	.attr("d", diagonal);	
+    
+    newNodes = existingNodes.enter().append("g");
+    newNodes
+    	.attr("class", "node")
+    	.attr("id", function(d){return d.name;})
+    	.attr("transform", function(d) { return "translate(" + d.y + "," + d.x + ")"; })
+    	.append("rect")
+        .attr('class', 'nodebox')
+    		.attr("x", -boxWidth/1.75)
+    		.attr("y", -boxHeight/1.75)
+    		.attr("width", function(d) { if (d.group=="2") return boxWidth+17; else {return boxWidth	;} })   /* function(d) { return (boxWidth + d.f1score); }*/ 
+    		.attr("height", function(d) { if (d.group=="2") return boxHeight+10; else {return boxHeight;} })
+    		.attr("r", boxWidth/(2*1.25))
+    		//.style("fill", function(d) { return color(d.group); } )
+    		//.style("stroke", function(d) { return color(d.group); } )
+    		;
+    
+    newNodes.append("rect")
+    .attr('id', 'performancebar')
+    .attr("y", boxHeight/3)
+    .attr("height", boxHeight/5)
+    .style("fill", "blue")
+    .style("stroke", "blue")
+    .attr("x", boxWidth/2)	
+    .attr("width", 0);
+
+    newNodes.append("rect")
+    .attr('id', 'performancebar1')
+    .attr("y", boxHeight/3)
+    .attr("height", boxHeight/5)
+    .style("fill", "green")
+    .style("stroke", "green")
+    .attr("x", boxWidth/2)	
+    .attr("width", 0);
+    
+    newNodes.append("rect")
+    .attr('id', 'performancebar2')
+    .attr("y", boxHeight/3)
+    .attr("height", boxHeight/5)
+    .style("fill", "red")
+    .style("stroke", "red")
+    .attr("x", boxWidth/2)	
+    .attr("width", 0);
+  
+    
+    existingLinks
+    .transition()
+    .duration(250)
+    .style("stroke", "orange")
+    .style("opacity", 0.5 )
+	.style("stroke-width", function(d){return ((d.target.f1score + d.target.f1score1 + d.target.f1score2)/2)+2;});
+
+    
+    existingLinks1
+    .transition().duration(250)	
+    .style("stroke", "orange")
+    .style("stroke-width", 0)
+	.style("opacity", 0.5)
+    ;
+    
+    
+    existingLinks2
+    //.transition()
+    //.duration(1000)
+	   //.style("stroke-width", function(d){return 5E-3*d.target.params.nKPsForThisNode;})
+    //.text(function(d) { return (d.f1score1);  });
+    .append("text")
+    .attr("y", function(d) { return ((d.source.x + d.target.x) / 2)+35 ; })
+    .attr("x", function(d) { return ((d.source.y + d.target.y) / 2)-30; })     
+    .style("stroke", "red")
+    .style("stroke-width", 1.5)
+    //.attr("text-anchor", "middle")	
+    .text(function(d) {
+        var key = d.target.linktext;
+	      //var key = d.branch;
+        return [key];
+    });
+   
+    
+    
+    newNodes.on("mouseover", function() {
+        thisNode = d3.select(this);
+        thisNodeCol = thisNode.select(".nodebox").style("fill");
+        thisNode.selectAll(".nodebox")
+        	.transition()
+        	.duration(500)
+        	    .style("fill", thisNodeCol)
+               // .style("opacity", 0.2)
+        	; 
+        	 
+        	existingLinks1
+            .transition().duration(250)
+            .style("stroke", "aqua")
+            .style("opacity", 0.2)
+            .style("stroke-width", getLinkWidthClass);
+         
+        });
+        newNodes.on("mouseout", function(){
+        d3.select(this).selectAll(".nodebox")
+           .transition()
+           .duration(500)
+               .style("fill",  thisNodeCol );
+        
+        
+        
+        
+        
+               //.style("opacity", null);
+					        /*
+					        existingLinks
+					            .transition().duration(250)	
+					            .style("stroke", "orange")
+					            .style("stroke-width", function(d){return ((d.target.f1score + d.target.f1score1 + d.target.f1score2)/2)+2;})
+					        	.style("opacity", 0.5)
+					            ;
+					        */          
+         
+        existingLinks1
+        .transition().duration(250)	
+        .style("stroke", "orange")
+        .style("stroke-width", 0)
+    	.style("opacity", 0.5)
+        ;
+        });
+  
+        
+    //Add node titles
+    newNodes.append("text")
+    	.attr("id", "nodetitle")
+    	.attr("class", "nodeTitle")
+    	.attr("y", -boxHeight/1.75 + fontSize + (2*lineSpace) )
+    	.attr("text-anchor", "middle");
+    
+    //Add node body text (for f1 score)
+    
+     newNodes.append("text")
+    .attr("text-anchor", "middle")
+    .attr("class", "nodeText")
+    .attr("id", "nodeText")
+    .attr("y", -boxHeight/3.5 + fontSize + lineSpace);
+    
+    /*
+    newNodes.append("g")
+    .attr("class", "confusionmatrix")
+    .attr("id", "confusionmatrix")
+        .selectAll("g").data(function(d){return d.params.confusionmatrix;})
+        .enter().append("g")
+    	.attr("class", "rows")
+    	.attr("transform", function(d,i) { return "translate("+(-15)+"," + (-boxHeight/2 + (i+3)*fontSize+(i+4)*lineSpace) + ")"; })
+    	.selectAll("g").data(function(d){return d;})
+    	.enter().append("g")
+    	    .attr("class", "columns")
+    	    .attr("transform", function(d,i) { return "translate(" + i*30 + ",0)"; })
+    				.append("text")
+    					.attr("text-anchor", "middle")
+    					.attr("class", "nodeText");
+    */
+    //ENTER + UPDATE: Update all nodes with new attributes
+   /* existingNodes.select('#performancebar')
+    .transition()
+    .duration(1000)
+    .attr("x", function(d){
+    		return yscale_performancebar(d.f1score);
+    		})
+    .attr("height", function(d){
+    		return boxHeight/2 - yscale_performancebar(d.f1score);
+    		});*/
+    
+    existingNodes.select('#performancebar')
+    .transition()
+    .duration(1000)
+    .attr("x", -boxWidth/2)
+    .attr("height", function(d) { return ((( d.f1score) + (d.f1score1) + (d.f1score2))/5)+2; } )        
+//    .attr("width", function(d) { return ( d.f1score); }  );
+    .attr("width", function(d) { 
+        if (d.group == "1") { return 0; }
+        else { 
+        		if ((d.f1score) > (d.f1score1))
+        		{
+            		if ((d.f1score) > (d.f1score2))
+            		{
+            			return ((d.f1score)/(d.f1score))*100;
+            		}
+            		else
+            		{
+        				return ((d.f1score)/(d.f1score2))*100;            			
+            		}
+        		}
+        		else
+        		{
+            		if ((d.f1score1) > (d.f1score2))
+            		{
+            			return ((d.f1score)/(d.f1score1))*100;
+            		}
+            		else
+            		{
+        				return ((d.f1score)/(d.f1score2))*100;            			
+            		}
+        		}
+        }
+    }  );
+    
+    existingNodes.select('#performancebar1')
+    .transition()
+    .duration(1000)
+    .attr("x", function(d) { return ((-boxWidth/2) + d.f1score); }       )
+    .attr("height", function(d) { return ((( d.f1score) + (d.f1score1) + (d.f1score2))/5)+2; } )    
+//    .attr("width", function(d) { return (d.f1score1); }  );   
+    .attr("width", function(d) { 
+        if (d.group == "1") { return 0; }
+        else { 
+    		if ((d.f1score) > (d.f1score1))
+    		{
+        		if ((d.f1score) > (d.f1score2))
+        		{
+        			return ((d.f1score1)/(d.f1score))*100;
+        		}
+        		else
+        		{
+    				return ((d.f1score1)/(d.f1score2))*100;            			
+        		}
+    		}
+    		else
+    		{
+        		if ((d.f1score1) > (d.f1score2))
+        		{
+        			return ((d.f1score1)/(d.f1score1))*100;
+        		}
+        		else
+        		{
+    				return ((d.f1score1)/(d.f1score2))*100;            			
+        		}
+    		}
+    }
+}  );
+    
+    existingNodes.select('#performancebar2')
+    .transition()
+    .duration(1000)
+    .attr("x", function(d) { return ((-boxWidth/2) + d.f1score) + d.f1score1; }       )
+    .attr("height", function(d) { return ((( d.f1score) + (d.f1score1) + (d.f1score2))/5)+2; } )    
+//    .attr("width", function(d) { return (d.f1score2); }  );   
+        .attr("width", function(d) { 
+        if (d.group == "1") { return 0; }
+        else { 
+    		if ((d.f1score) > (d.f1score1))
+    		{
+        		if ((d.f1score) > (d.f1score2))
+        		{
+        			return ((d.f1score2)/(d.f1score))*100;
+        		}
+        		else
+        		{
+    				return ((d.f1score2)/(d.f1score2))*100;            			
+        		}
+    		}
+    		else
+    		{
+        		if ((d.f1score1) > (d.f1score2))
+        		{
+        			return ((d.f1score2)/(d.f1score1))*100;
+        		}
+        		else
+        		{
+    				return ((d.f1score2)/(d.f1score2))*100;            			
+        		}
+    		}
+    }
+}  );
+
+    
+    existingNodes.select("#nodetitle")
+    .text(function(d){return d.name.split("_").slice(-1);});
+    existingNodes.select("#nodeText")
+    //.text(function(d) { if (d.group=="2") return "Count:" + (d.f1score + d.f1score1 + d.f1score2); else {return null	;} } );
+    .text(function(d) { return "Count:" + (d.f1score + d.f1score1 + d.f1score2);  } );    
+
+    /*
+    newNodes.append("text")
+	.attr("id", "nodetitle")
+	.attr("class", "nodeTitle")
+	//.attr("y", -boxHeight/2 + fontSize + lineSpace)
+	.attr("y", -boxHeight/2)
+	.attr("text-anchor", "middle");
+    */
+
+    
+    //.text(function(d) { return (d.f1score1);  });
+    /*.append("text")
+    .attr("y", function(d) { return ((d.source.x + d.target.x) / 2) +35 ; })
+    .attr("x", function(d) { return ((d.source.y + d.target.y) / 2) -20; })   
+    //.attr("text-anchor", "middle")
+    .text(function(d) {
+        var key = d.target.linktext;
+	      //var key = d.branch;
+        return [key];
+    });
+  */
+/*
+    existingLinks1
+    .append("text")
+    .attr("y", function(d) { return ((d.source.x + d.target.x) / 2) +35 ; })
+    .attr("x", function(d) { return ((d.source.y + d.target.y) / 2) -20; })   
+    //.attr("text-anchor", "middle")
+    .text(function(d) {
+        var key = d.target.linktext;
+	      //var key = d.branch;
+        return [key];
+    })
+    .style("stroke", "red");
+    //.style("opacity", "0.1px" );    
+*/
+        /*
+    // Update confusion matrix
+    existingNodes.select("#confusionmatrix")
+    .selectAll(".rows")
+    .data(function(d){return d.params.confusionmatrix;})
+        .selectAll(".columns") //rows
+        .data(function(d){return d;})
+    	.select("text")
+    	.text(function(d){return d;});
+    	
+    	*/
+//});
+  	}
+  
+  // ~~~~~~~~~~~~~~~~~~@@@@@@@@@@@@@@@@@@@@@@@@@@@
+   
+// Format f1score message
+function node1Text(d) {
+   // var f1Score = d.f1score;
+    //return "f1Score: " + d3.format("0.1f")(f1Score*100) + "%";
+	//var f1Score =  d.group;
+	//return f1Score;
+	
+	//var rootNode =  thisNode.attr("id");
+	var f1Score = d.f1score + d.f1score1 + d.f1score2;
+	return f1Score;
+
+    /*
+    var rootNode = d3.select('#RootNode')[0][0].__data__;
+    var rootInst = rootNode[className];
+    var normFac = rootInst / boxHeight;
+    var thisNodeInst = node.target[className];
+    var myWidth = thisNodeInst / normFac;*/
+}
+
+function nodebarlength(d) {
+	var barlength =  d.f1score;
+	return barlength; 	
+}
+
+function getLinkWidthTotal(node) {
+    return 5E-3*d.target.params.nKPsForThisNode;
+
+}
+
+function getLinkWidthClass(node) {
+    var className = thisNode.attr("id");
+    //alert(className);
+    var rootNode = d3.select('#Sales')[0][0].__data__;
+    //alert(rootNode);
+    var rootInst = rootNode[className];
+    //alert(rootInst);
+    var normFac = rootInst / boxHeight;
+    var thisNodeInst = node.target[className];
+    var myWidth = thisNodeInst / normFac;
+    /*var myWidth = (d.target.f1score + d.target.f1score1 + d.target.f1score2)/2;*/
+    return myWidth;
+}
+
+//d3.select(self.frameElement).style("height", height + "px");
